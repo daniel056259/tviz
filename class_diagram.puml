@@ -1,0 +1,135 @@
+@startuml class_diagram
+enum TokenType {
+    INT
+    FLOAT
+    PLUS
+    MINUS
+    MUL
+    DIV
+    MOD
+    COMMA
+    SEMICOLON
+    LPAREN
+    RPAREN
+    LBRACE
+    RBRACE
+    LBRACKET
+    RBRACKET
+    IDENTIFIER
+    ASSIGNMENT
+    EQUAL
+    KW_IF
+    KW_ELSE
+    KW_ELIF
+    KW_FOR
+    KW_WHILE
+    KW_VOID
+    KW_INT
+    KW_FLOAT
+    KW_STRING
+    KW_BOOL
+    KW_TRUE
+    KW_FALSE
+    KW_CONTINUE
+    KW_BREAK
+    KW_RETURN
+}
+
+struct Token {
+    + type: TokenType
+    + val: variant<int, float, string>
+}
+
+class Lexer {
+    - tokens: vector<Token>
+    - tokens_idx: size_t
+
+    + Lexer(stringstream& ss)
+    + size() const: size_t
+    + hasMoreTokens() const: bool
+    + peek(size_t offset) const: Token
+    + get(): Token
+    - tokenize(stringstream& ss): void
+}
+
+Token *--> TokenType
+Lexer *--> Token
+
+' TODO
+
+enum VariableType {
+    INT
+    FLOAT
+    STRING
+    BOOL
+}
+
+struct VariableInfo {
+    + type: VariableType
+    + val: variant<int, float, string, bool>
+}
+
+VariableInfo *--> VariableType
+
+' function 기능 추가 고민
+
+class Environment {
+    - variables: stack<unordered_map<string, VariableInfo>>
+
+    + is_declared(string identifier): bool
+    + execute(AST& ast): void
+}
+
+class Parser {
+    - lexer: Lexer&
+    - env: Environment&
+
+    + Parser(Lexer& lexer, Environment& env)
+    + parse(): AST
+}
+
+Parser *--> Lexer
+Parser *--> Environment
+Environment *--> VariableInfo
+Environment *--> AST
+
+class AST {
+    - root_node_ptr: AbstractAstNode*
+
+    + notify(args) // TODO
+    + execute()
+}
+
+abstract class AbstractAstNode <<interface>> {
+    - data // TODO
+    - children: vector<AbstractAstNode*>
+
+    + execute()
+}
+
+Parser *--> AST
+AST *--> AbstractAstNode
+AST <|-- AbstractTree
+
+abstract class AbstractTree <<interface>> {
+    - observer: vector<Visualizer*>
+    - root_node_ptr: AbstractNode*
+
+    + notify(args): void // TODO
+}
+
+abstract class AbstractNode <<interface>> {
+    - data // TODO
+    - children: vector<AbstractNode*>
+}
+
+AbstractTree *--> AbstractNode
+AbstractAstNode <|-- AbstractNode
+
+class Visualizer {
+    + update(): void
+}
+
+AbstractTree *--> Visualizer
+
+@enduml
