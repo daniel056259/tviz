@@ -1,0 +1,193 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+' ==========================================
+' Core Abstractions
+' ==========================================
+package "Core" {
+    abstract class Node {
+        + {abstract} ~Node()
+        + {abstract} getKeyCount() : int
+        + {abstract} draw(Visualizer& vis) : void
+        + {static} toString<T>(T data) : string
+    }
+
+    abstract class Tree {
+        # vis : Visualizer*
+        # root_ptr : Node*
+        + {abstract} ~Tree()
+        + root() : Node*
+    }
+}
+
+' ==========================================
+' Visualization System
+' ==========================================
+package "Visualization" {
+    class Visualizer {
+        - status : map
+        - tree : Tree*
+        - tail_stack : stack
+        + Visualizer(Tree* t)
+        + render() : void
+        + printKey(...) : void
+        + printChild(...) : void
+        + setTitle(string t)
+        + setMessage(string m)
+    }
+
+    class VisualizerConfig {
+        + {static} setDelayMode(DelayMode)
+        + {static} setDelayDuration(ms)
+    }
+
+    Visualizer o-- Tree : references >
+    Tree *-- Visualizer : owns >
+    Visualizer ..> Node : draws >
+    Visualizer ..> VisualizerConfig : uses >
+}
+
+' ==========================================
+' Data Structures (Model)
+' ==========================================
+package "Data Structures" {
+    class DataNode<T> {
+        # key : vector<T>
+        # children : vector<DataNode*>
+        + is_leaf() : bool
+    }
+
+    class DataTree<T> {
+        + insert(T) : bool
+        + search(T) : bool
+        + remove(T) : bool
+        + rangeSearch(T, T) : bool
+    }
+
+    ' Inheritance Relationships
+    Node <|-- DataNode
+    Tree <|-- DataTree
+
+    ' Concrete Trees
+    class BSTNode<T>
+    class BST<T>
+    DataNode <|-- BSTNode
+    DataTree <|-- BST
+
+    class RBNode<T> {
+        + rb_color : RBColor
+        + parent : RBNode*
+    }
+    class RBTree<T> {
+        - insertFixup()
+        - deleteFixup()
+    }
+    DataNode <|-- RBNode
+    DataTree <|-- RBTree
+
+    class BTreeNode<T> {
+        + splitChild()
+        + merge()
+    }
+    class BTree<T>
+    DataNode <|-- BTreeNode
+    DataTree <|-- BTree
+
+    class BPlusTreeNode<T> {
+        - next : BPlusTreeNode*
+        + rangeSearchInLeaf()
+    }
+    class BPlusTree<T>
+    DataNode <|-- BPlusTreeNode
+    DataTree <|-- BPlusTree
+}
+
+' ==========================================
+' CLI & Script Engine (Controller)
+' ==========================================
+package "CLI & Script Engine" {
+    
+    ' --- Environment & Utils ---
+    class Environment {
+        - scopes : vector<map>
+        - builtins : map
+        + push_scope()
+        + pop_scope()
+        + declare_uninitialized()
+        + assign()
+        + get_var_checked()
+        + call_builtin()
+    }
+
+    struct Token {
+        + type : TokenType
+        + value : TokenValue
+    }
+
+    class Lexer {
+        - src : string
+        + tokenize() : vector<Token>
+    }
+
+    class Parser {
+        - toks : vector<Token>
+        + parse() : unique_ptr<ProgramNode>
+        - parse_statement()
+        - parse_expr()
+    }
+
+    struct Recorder {
+        + {static} out : ofstream
+        + {static} enabled : bool
+    }
+
+    ' --- AST Hierarchy ---
+    abstract class AstNode {
+        + {abstract} eval(Environment& env) : Value
+        + getKeyCount() : int
+        + draw(Visualizer& vis) : void
+    }
+
+    class AST {
+        - prog_root : unique_ptr<ProgramNode>
+        + run(string src, Environment& env) : Value
+    }
+
+    class ProgramNode
+    class LiteralNode
+    class VarRefNode
+    class CallNode
+    class AssignNode
+    class BinaryOpNode
+    class IfNode
+    class WhileNode
+    class ForNode
+    class BlockNode
+
+    ' Relationships
+    Node <|-- AstNode
+    Tree <|-- AST
+
+    AstNode <|-- ProgramNode
+    AstNode <|-- LiteralNode
+    AstNode <|-- VarRefNode
+    AstNode <|-- CallNode
+    AstNode <|-- AssignNode
+    AstNode <|-- BinaryOpNode
+    AstNode <|-- IfNode
+    AstNode <|-- WhileNode
+    AstNode <|-- ForNode
+    AstNode <|-- BlockNode
+
+    ' Dependencies
+    AST ..> Lexer : uses >
+    AST ..> Parser : uses >
+    Parser ..> Token : consumes >
+    AST *-- ProgramNode : owns root >
+    AstNode ..> Environment : reads/writes >
+    AST ..> Recorder : logs >
+}
+
+@enduml
